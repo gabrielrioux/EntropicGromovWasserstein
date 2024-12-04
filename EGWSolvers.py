@@ -115,8 +115,7 @@ def EGWConvex(x,y,wtx,wty,reg,cost,A = None,L = None,center = True,delta = 1e-6,
         L = 64
     elif L == None and cost == "inner":
         L = 16
-    else:
-        raise ValueError("costs are 'quad' or 'inner'")
+
     grad = getGrad(x,y,wtx,wty,reg,cost,sinkhornOpts)
     
     M = (np.dot(np.sum(x**2,axis=1),wtx)*np.dot(np.sum(y**2,axis=1),wty))**(0.5)+1e-5
@@ -184,8 +183,6 @@ def EGWAdaptive(x,y,wtx,wty,reg,cost,A = None,L = None,center = True,delta = 1e-
         L = max(64,32**2/reg*(fourthMoment(x,wtx)*fourthMoment(y,wty))**(0.5)-64)
     elif L == None and cost == "inner":
         L = max(16,64/reg*(fourthMoment(x,wtx)*fourthMoment(y,wty))**(0.5)-16)
-    elif L == None:
-        raise ValueError("costs are 'quad' or 'inner'")    
 
     grad = getGrad(x,y,wtx,wty,reg,cost,sinkhornOpts)
     
