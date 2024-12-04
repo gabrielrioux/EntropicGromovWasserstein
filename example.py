@@ -11,5 +11,10 @@ wtx = rng.random(Nx)
 wtx/=np.sum(wtx)
 wty = rng.random(Ny)
 wty/=np.sum(wty)
- 
-cost,plan = EGWAuto(x,y,wtx,wty,reg,"quad")
+
+A = np.zeros((dx,dy))
+L = 64
+center = True
+delta = 5e-8
+sinkhornOpts = {"method":"sinkhorn", "numItermax":10000}
+cost,plan = EGWAuto(x,y,wtx,wty,reg,"quad",A = A,L = L,center = True,delta = delta,sinkhornOpts = sinkhornOpts)
