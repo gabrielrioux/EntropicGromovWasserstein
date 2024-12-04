@@ -92,4 +92,169 @@ def getGrad(x,y,wtx,wty,reg,cost,sinkhornOpts):
 
 #Compute the EGW distance and plan when the variational objective is convex
 #Input:     x: support points of mu (N_x x d_x)
+#           y: support points of nu (N_y x d_y)
+#         wtx: probability mass attributed to the N_x points of mu (N_x x 1)
+#         wty: probability mass attributed to the N_y points of nu (N_y x 1) 
+#         reg: regularization parameter for entropic Gromov-Wasserstein (float > 0)
+#        cost: quadratic or inner product (str "quad" or "inner")
+#           A: initial point (d_x x d_y)
+#           L: Lipschitz constant of gradient of objective (float > 0) see Theorem 6/Corollary 34 in the paper
+#      center: whether or not to center the distributions before running gradient alg. (boolean)
+#       delta: tolerance for termination condition, norm of gradient < delta (float > 0)
+#sinkhornOpts: Options to pass to the POT implementation of Sinkhorn's algorithm (see https://pythonot.github.io/_modules/ot/bregman/_sinkhorn.html#sinkhorn)
+#Return: EGW distance and corresponding plan 
+def GWConvex(x,y,wtx,wty,reg,cost,A = None,L = None,center = True,delta = 1e-6,sinkhornOpts = {}):
+    (Nx,dx) = np.shape(x)
+    (Ny,dy) = np.shape(y)
+    if A is None:
+        A = np.zeros((dx,dy))
+    if center == True:
+        x = x - mean(x,wtx)
+        y = y - mean(y,wty)
+    if L == None and cost == "quad":
+        L = 64
+    elif L == None and cost == "inner":
+        L = 16
+    else:
+        raise ValueError("costs are 'quad' or 'inner'")
+    grad = getGrad(x,y,wtx,wty,reg,cost,sinkhornOpts)
+    
+    M = (np.dot(np.sum(x**2,axis=1),wtx)*np.dot(np.sum(y**2,axis=1),wty))**(0.5)+1e-5
+
+    Ak = A
+    lk = 0
+    Gk = 1
+    Wk = 0
+    k = 0
+
+    while np.linalg.norm(Gk)>delta:
+        Gk,plan = grad(Ak)
+
+        Wk = Wk+(k+1)/2*Gk
+
+        px1 = Ak-Gk/L
+        nm1 = np.linalg.norm(px1)
+        Yk = min(1,M/(2*nm1))*px1
+
+        nm2 = np.linalg.norm(Wk)/L
+        Zk = -1/L*min(1,M/(2*nm2))*Wk
+
+        Ak = 2/(k+3)*Zk+(k+1)/(k+3)*Yk
+
+        k = k+1
+        
+    _,plan = grad(Yk)
+
+    if cost == "quad":
+        A_1,A_2=factorizedSquareEuclidean(x)
+        B_1,B_2=factorizedSquareEuclidean(y)
+        c2 = -2*np.trace(np.dot(np.dot(np.dot(B_2, plan.T), A_1), np.dot(np.dot(A_2, plan), B_1)))
+        c1 = np.dot(np.dot(wtx,np.dot(A_1,A_2)**2),wtx)+np.dot(wty,np.dot(np.dot(B_1,B_2)**2,wty))
+        return  c1+c2+reg*(np.sum(plan*np.log(plan))-np.sum(wtx*np.log(wtx))-np.sum(wty*np.log(wty))),plan
+    elif cost == "inner":    
+        A_1,A_2=x,x.T
+        B_1,B_2=y,y.T
+    
+        c2 = -2* np.trace(np.dot(np.dot(np.dot(B_2, plan.T), A_1), np.dot(np.dot(A_2, plan), B_1)))
+        c1 = np.dot(np.dot(wtx,np.dot(A_1,A_2)**2),wtx)+np.dot(wty,np.dot(np.dot(B_1,B_2)**2,wty))
+        return  c1+c2+reg*(np.sum(plan*np.log(plan))-np.sum(wtx*np.log(wtx))-np.sum(wty*np.log(wty))), plan
+
+#Estimate the EGW distance and plan when the variational objective is not convex
+#Input:     x: support points of mu (N_x x d_x)
+#           y: support points of nu (N_y x d_y)
+#         wtx: probability mass attributed to the N_x points of mu (N_x x 1)
+#         wty: probability mass attributed to the N_y points of nu (N_y x 1) 
+#         reg: regularization parameter for entropic Gromov-Wasserstein (float > 0)
+#        cost: quadratic or inner product (str "quad" or "inner")
+#           A: initial point (d_x x d_y)
+#           L: Lipschitz constant of gradient of objective (float > 0) see Theorem 6/Corollary 34 in the paper
+#      center: whether or not to center the distributions before running gradient alg. (boolean)
+#       delta: tolerance for termination condition, norm of gradient < delta (float > 0)
+#sinkhornOpts: Options to pass to the POT implementation of Sinkhorn's algorithm (see https://pythonot.github.io/_modules/ot/bregman/_sinkhorn.html#sinkhorn)
+#Return: estimate of the EGW distance and corresponding plan (note that in the nonconvex regime, spurious minima exist so exact resolution is not guaranteed)
+def GWAdaptive(x,y,wtx,wty,reg,cost,A = None,L = None,center = True,delta = 1e-6,sinkhornOpts = {}):
+    (Nx,dx) = np.shape(x)
+    (Ny,dy) = np.shape(y)
+    if A is None:
+        A = np.zeros((dx,dy))
+    if center == True:
+        x = x - mean(x,wtx)
+        y = y - mean(y,wty)
+    if L == None and cost == "quad":
+        L = max(64,32**2/reg*(fourthMoment(x,wtx)*fourthMoment(y,wty))**(0.5)-64)
+    elif L == None and cost == "inner":
+        L = max(16,64/reg*(fourthMoment(x,wtx)*fourthMoment(y,wty))**(0.5)-16)
+    elif L == None:
+        raise ValueError("costs are 'quad' or 'inner'")    
+
+    grad = getGrad(x,y,wtx,wty,reg,cost,sinkhornOpts)
+    
+    M = (np.dot(np.sum(x**2,axis=1),wtx)*np.dot(np.sum(y**2,axis=1),wty))**(0.5)+1e-5
+
+    Ak = A
+    lk = 0
+    Gk = 1
+    Zk = 0
+    k = 0
+
+    while np.linalg.norm(Gk)>delta:
+        Gk,plan=grad(Ak)
+
+        px1=Ak-Gk/(2*L)
+        nm1=np.linalg.norm(px1)
+        Yk=min(1,M/(2*nm1))*px1
+
+        px2=Zk-(k+1)*Gk/(4*L)
+        nm2=np.linalg.norm(px2)
+        Zk=min(1,M/(2*nm2))*px2
+
+        Ak=2/(k+3)*Zk+(k+1)/(k+3)*Yk
+
+        k=k+1
+
+    _,plan = grad(Yk)
+    if cost == "quad":
+        _,plan = grad(Yk)
+    
+        A_1,A_2=factorizedSquareEuclidean(x)
+        B_1,B_2=factorizedSquareEuclidean(y)
+        c2 = -2*np.trace(np.dot(np.dot(np.dot(B_2, plan.T), A_1), np.dot(np.dot(A_2, plan), B_1)))
+        c1 = np.dot(np.dot(wtx,np.dot(A_1,A_2)**2),wtx)+np.dot(wty,np.dot(np.dot(B_1,B_2)**2,wty))
+        return  c1+c2+reg*(np.sum(plan*np.log(plan))-np.sum(wtx*np.log(wtx))-np.sum(wty*np.log(wty))),plan
+    elif cost == "inner":    
+        A_1,A_2=x,x.T
+        B_1,B_2=y,y.T
+    
+        c2 = -2* np.trace(np.dot(np.dot(np.dot(B_2, plan.T), A_1), np.dot(np.dot(A_2, plan), B_1)))
+        c1 = np.dot(np.dot(wtx,np.dot(A_1,A_2)**2),wtx)+np.dot(wty,np.dot(np.dot(B_1,B_2)**2,wty))
+        return  c1+c2+reg*(np.sum(plan*np.log(plan))-np.sum(wtx*np.log(wtx))-np.sum(wty*np.log(wty))), plan
+        
+#Helper function which checks if the objective is convex according to the Theorem 6/Corollary 34 in the paper
+#Input:     x: support points of mu (N_x x d_x)
+#           y: support points of nu (N_y x d_y)
+#         wtx: probability mass attributed to the N_x points of mu (N_x x 1)
+#         wty: probability mass attributed to the N_y points of nu (N_y x 1) 
+#         reg: regularization parameter for entropic Gromov-Wasserstein (float > 0)
+#        cost: quadratic or inner product (str "quad" or "inner")
+#           A: initial point (d_x x d_y)
+#           L: Lipschitz constant of gradient of objective (float > 0) see Theorem 6/Corollary 34 in the paper
+#      center: whether or not to center the distributions before running gradient alg. (boolean)
+#       delta: tolerance for termination condition, norm of gradient < delta (float > 0)
+#sinkhornOpts: Options to pass to the POT implementation of Sinkhorn's algorithm (see https://pythonot.github.io/_modules/ot/bregman/_sinkhorn.html#sinkhorn)
+#Return: estimate of the EGW distance and corresponding plan (note that in the nonconvex regime, spurious minima exist so exact resolution is not guaranteed)
+def GWAuto(x,y,wtx,wty,reg,cost,A = None,L = None,center = True,delta = 1e-6,sinkhornOpts = {}):
+    if center == True:
+        x = x - mean(x,wtx)
+        y = y - mean(y,wty)
+    if cost == "quad":
+        if np.sqrt(fourthMoment(x,wtx)*fourthMoment(y,wty))<reg/16:
+            return GWConvex(x,y,wtx,wty,reg,cost,A,L,False,delta,sinkhornOpts)
+        else:
+            return GWAdaptive(x,y,wtx,wty,reg,cost,A,L,False,delta,sinkhornOpts)
+    elif cost == "inner":
+        if np.sqrt(fourthMoment(x,wtx)*fourthMoment(y,wty))<reg/4:
+            return GWConvex(x,y,wtx,wty,reg,cost,A,L,False,delta,sinkhornOpts)
+        else:
+            return GWAdaptive(x,y,wtx,wty,reg,cost,A,L,False,delta,sinkhornOpts)
+    else:
         raise ValueError("Valid costs are 'quad' and 'inner'")
