@@ -248,13 +248,13 @@ def EGWAuto(x,y,wtx,wty,reg,cost,A = None,L = None,center = True,delta = 1e-6,si
         y = y - mean(y,wty)
     if cost == "quad":
         if np.sqrt(fourthMoment(x,wtx)*fourthMoment(y,wty))<reg/16:
-            return GWConvex(x,y,wtx,wty,reg,cost,A,L,False,delta,sinkhornOpts)
+            return EGWConvex(x,y,wtx,wty,reg,cost,A,L,False,delta,sinkhornOpts)
         else:
-            return GWAdaptive(x,y,wtx,wty,reg,cost,A,L,False,delta,sinkhornOpts)
+            return EGWAdaptive(x,y,wtx,wty,reg,cost,A,L,False,delta,sinkhornOpts)
     elif cost == "inner":
         if np.sqrt(fourthMoment(x,wtx)*fourthMoment(y,wty))<reg/4:
-            return GWConvex(x,y,wtx,wty,reg,cost,A,L,False,delta,sinkhornOpts)
+            return EGWConvex(x,y,wtx,wty,reg,cost,A,L,False,delta,sinkhornOpts)
         else:
-            return GWAdaptive(x,y,wtx,wty,reg,cost,A,L,False,delta,sinkhornOpts)
+            return EGWAdaptive(x,y,wtx,wty,reg,cost,A,L,False,delta,sinkhornOpts)
     else:
         raise ValueError("Valid costs are 'quad' and 'inner'")
