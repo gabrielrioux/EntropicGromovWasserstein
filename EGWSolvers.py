@@ -103,7 +103,7 @@ def getGrad(x,y,wtx,wty,reg,cost,sinkhornOpts):
 #       delta: tolerance for termination condition, norm of gradient < delta (float > 0)
 #sinkhornOpts: Options to pass to the POT implementation of Sinkhorn's algorithm (see https://pythonot.github.io/_modules/ot/bregman/_sinkhorn.html#sinkhorn)
 #Return: EGW distance and corresponding plan 
-def GWConvex(x,y,wtx,wty,reg,cost,A = None,L = None,center = True,delta = 1e-6,sinkhornOpts = {}):
+def EGWConvex(x,y,wtx,wty,reg,cost,A = None,L = None,center = True,delta = 1e-6,sinkhornOpts = {}):
     (Nx,dx) = np.shape(x)
     (Ny,dy) = np.shape(y)
     if A is None:
@@ -172,7 +172,7 @@ def GWConvex(x,y,wtx,wty,reg,cost,A = None,L = None,center = True,delta = 1e-6,s
 #       delta: tolerance for termination condition, norm of gradient < delta (float > 0)
 #sinkhornOpts: Options to pass to the POT implementation of Sinkhorn's algorithm (see https://pythonot.github.io/_modules/ot/bregman/_sinkhorn.html#sinkhorn)
 #Return: estimate of the EGW distance and corresponding plan (note that in the nonconvex regime, spurious minima exist so exact resolution is not guaranteed)
-def GWAdaptive(x,y,wtx,wty,reg,cost,A = None,L = None,center = True,delta = 1e-6,sinkhornOpts = {}):
+def EGWAdaptive(x,y,wtx,wty,reg,cost,A = None,L = None,center = True,delta = 1e-6,sinkhornOpts = {}):
     (Nx,dx) = np.shape(x)
     (Ny,dy) = np.shape(y)
     if A is None:
@@ -242,7 +242,7 @@ def GWAdaptive(x,y,wtx,wty,reg,cost,A = None,L = None,center = True,delta = 1e-6
 #       delta: tolerance for termination condition, norm of gradient < delta (float > 0)
 #sinkhornOpts: Options to pass to the POT implementation of Sinkhorn's algorithm (see https://pythonot.github.io/_modules/ot/bregman/_sinkhorn.html#sinkhorn)
 #Return: estimate of the EGW distance and corresponding plan (note that in the nonconvex regime, spurious minima exist so exact resolution is not guaranteed)
-def GWAuto(x,y,wtx,wty,reg,cost,A = None,L = None,center = True,delta = 1e-6,sinkhornOpts = {}):
+def EGWAuto(x,y,wtx,wty,reg,cost,A = None,L = None,center = True,delta = 1e-6,sinkhornOpts = {}):
     if center == True:
         x = x - mean(x,wtx)
         y = y - mean(y,wty)
