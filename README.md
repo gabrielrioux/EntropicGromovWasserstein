@@ -42,9 +42,9 @@ wty/=np.sum(wty) # normalize
 # EGWConvex assumes the objective is convex
 # EGWAdaptive does not assume convexity of the objective
 
-#Optional arguments:  A (initial matrix dx x dy),
-                      L (Lipschitz constant of gradient),
-                      center (whether to center the distributions),
-                      delta (tolerance for termination based on norm of gradient),
-                      sinkhornOpts (optional arguments to pass to the POT sinkhorn method),
+#Optional arguments:   A (initial matrix dx x dy),
+#                      L (Lipschitz constant of gradient),
+#                      center (whether to center the distributions),
+#                      delta (tolerance for termination based on norm of gradient),
+#                      sinkhornOpts (optional arguments to pass to the POT sinkhorn method),
 cost,plan = EGWAuto(x,y,wtx,wty,reg,"quad",A = None,L = None,center = True,delta = 1e-6,sinkhornOpts = {}) 
