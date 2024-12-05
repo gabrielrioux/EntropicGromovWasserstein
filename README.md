@@ -16,7 +16,7 @@ The code provides implementations of the accelerated gradient methods (Algorithm
 ---
 
 ## Installation  
-To use the code, clone this repository and ensure you have [numpy]{https://numpy.org/doc/stable/index.html} and [POT]{https://pythonot.github.io/index.html} installed.
+To use the code, clone this repository and ensure you have [numpy](https://numpy.org/doc/stable/index.html) and [POT](https://pythonot.github.io/index.html) installed.
 
 ---
 
