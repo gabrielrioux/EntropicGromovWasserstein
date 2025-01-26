@@ -12,6 +12,9 @@ wtx/=np.sum(wtx)
 wty = rng.random(Ny)
 wty/=np.sum(wty)
 
+x = x - mean(x,wtx)
+y = y - mean(y,wty)
+
 A = np.zeros((dx,dy))
 L = 64
 center = True
