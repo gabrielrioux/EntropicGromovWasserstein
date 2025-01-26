@@ -37,6 +37,10 @@ wtx/=np.sum(wtx) # normalize
 wty = rng.random(Ny) # generate random weights of second marginal
 wty/=np.sum(wty) # normalize
 
+# center
+x = x - mean(x,wtx)
+y = y - mean(y,wty)
+
 # compute cost and plan for EGW, can choose "quad" for quadratic or "inner" for inner product cost
 # EGWAuto checks if a sufficient condition for convexity is met and uses the appropriate solver
 # EGWConvex assumes the objective is convex
